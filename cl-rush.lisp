@@ -1,54 +1,94 @@
-; ÕâÆªËÙ³É¼ÇÂ¼ÁËÎÒÔÚÑ§Ï°LispÊ±×îÏëÁË½âµÄÒ»Ð©¶«Î÷£¬Ä¿±ê¶ÁÕßÊÇÓÃ¹ýÒ»Ð©±à³ÌÓïÑÔ¡¢Ïë¾¡¿ìÓÃLisp×öÐ©ÊµÓÃ³ÌÐòµÄ¿ª·¢Õß¡£
+;;;; CL-RUSH
 
-;´Ó·ÖºÅµ½ÐÐÎ²ÊÇ×¢ÊÍ¡£
+;;; è¿™ç¯‡é€Ÿæˆè®°å½•äº†æˆ‘åœ¨å­¦ä¹ Lispæ—¶æœ€æƒ³äº†è§£çš„ä¸€äº›ä¸œè¥¿ï¼Œç›®æ ‡è¯»è€…æ˜¯ç”¨è¿‡ä¸€äº›ç¼–ç¨‹è¯­è¨€ã€æƒ³å°½å¿«ç”¨Lispåšäº›å®žç”¨ç¨‹åºçš„å¼€å‘è€…ã€‚
 
-                                        ; ±êÊ¶·û"Ò»°ã"²»Çø·Ö´óÐ¡Ð´£¬ÀýÈç
-nil nIL Nil NIL ¶¼ÏàÍ¬¡£
+#|
+multiline-comments
+  #| nestable |#
+|#
 
-ÕûÊý
+                                        ; line-comments
 
-    ´óÐ¡ÎÞÏÞ£¨»òËµÖ»ÊÜÄãµÄ´æ´¢ÏÞÖÆ£©£¬ÐÎÈç 123 -456
-    Ö§³Ö2~36½øÖÆ£¬ÐÎÈç #nnRdddd ÆäÖÐnnÎª»ù£¬RÎª¹Ì¶¨µÄ·Ö¸ô£¬ºóÐø"Êý×Ö"¡£
+;;;; title
+;;; intro
+;; state
+                                        ;explanation ä»Žåˆ†å·åˆ°è¡Œå°¾æ˜¯æ³¨é‡Šã€‚
+                                        ; continuation
 
--1.2e-3 ;¸¡µãÊý
+;; number
 
-1/2 ;CLÖ§³Ö·ÖÊý£¬ÕâÔÚÆäËûÓïÑÔÖÐ²»Ì«³£¼û¡£
+;; integer
+;; å¤§å°æ— é™ï¼ˆæˆ–è¯´åªå—ä½ çš„å­˜å‚¨é™åˆ¶ï¼‰ï¼Œå½¢å¦‚ 123 -456
+;; æ”¯æŒ2~36è¿›åˆ¶ï¼Œå½¢å¦‚ #nnRdddd å…¶ä¸­nnä¸ºåŸºï¼ŒRä¸ºå›ºå®šçš„åˆ†éš”ï¼ŒåŽç»­"æ•°å­—"ã€‚
+1
 
+;; rational CLæ”¯æŒåˆ†æ•°ï¼Œè¿™åœ¨å…¶ä»–è¯­è¨€ä¸­ä¸å¤ªå¸¸è§ã€‚
+2/3
 
-    ÀýÈç #\a #\A #\0 #\\ #\' #\" ·Ö±ð±íÊ¾a¡¢A¡¢0¡¢\¡¢'¡¢"
-    ¶ÔÓÚCÖÐµÄ×ªÒå×Ö·û£¬CLÓÐÌØÊâÃû×Ö£¬ÀýÈç #\Newline #\Tab #\Return #\Nul µÈ
+;; float
+3.14
 
-×Ö·û´®
+;; long-float
+1.234d9
 
-    Ë«ÒýºÅ°üÎ§¡£
+;; complex
+#c(2.0 3.5)
 
-    ÓïÑÔ»ù´¡
-        ³£Á¿
-        ±äÁ¿
-        º¯Êýµ÷ÓÃ
-        ¸³Öµ
-        ËãÊõÔËËã
-        ¹ØÏµÔËËã
-        Âß¼­ÔËËã
-        º¯Êý¶¨Òå
-        ¾Ö²¿±äÁ¿
-        Ë³Ðò
-        Ñ¡Ôñ
-        Ñ­»·
-        ÃüÃû¿Õ¼ä
-    Êý¾ÝÀàÐÍ
-        ×Ö·û´®
-        ÏòÁ¿
-        ÁÐ±í
-        ¹ØÁªÁÐ±í
-        ¹þÏ£±í
-        ÈÕÆÚÓëÊ±¼ä
-        ÎÄ¼þ²Ù×÷
-        Êý¾Ý¿â
-        ÍøÂç
+;; symbolï¼šç¬¦å·ã€‚å•å¼•å·è¡¨ç¤ºå¼•ç”¨
+'foo 'BAR 'a-2_#
 
-(coerce vec 'list) ; ÏòÁ¿£¨Êý×é£©×ªÁÐ±í
+;; æ ‡è¯†ç¬¦"ä¸€èˆ¬"ä¸åŒºåˆ†å¤§å°å†™ï¼Œä¾‹å¦‚
+nil nIL Nil NIL
 
-(coerce lst 'vector) ; ÁÐ±í×ªÏòÁ¿£¨Êý×é£©
+;; char: å­—ç¬¦
+#\a #\A #\0 #\\ #\' #\"
 
-(flexi-streams:string-to-octets s) ; ×Ö·û´®×ª×Ö½ÚÊý×é
+;; å¯¹äºŽCä¸­çš„è½¬ä¹‰å­—ç¬¦ï¼ŒCLæœ‰ç‰¹æ®Šåå­—ï¼Œä¾‹å¦‚
+#\Newline #\Tab #\Return #\Nul
+
+;; string: åŒºåˆ†å¤§å°å†™
+"abc-XYZ-123"
+"å­—ç¬¦ä¸²"
+
+;; å¸¸é‡
+(defconstant gravity 9.8)
+
+;; å…¨å±€å˜é‡
+(defvar error-count 0)
+
+(defparameter show-error t)
+
+;; å‡½æ•°è°ƒç”¨
+(cos pi)
+
+;; èµ‹å€¼
+(defvar foo 0)
+(setf foo 1)
+(incf foo)
+(decf foo 2)
+
+;; ç®—æœ¯è¿ç®—
+;; å…³ç³»è¿ç®—
+;; é€»è¾‘è¿ç®—
+;; å‡½æ•°å®šä¹‰
+;; å±€éƒ¨å˜é‡
+;; é¡ºåº
+;; é€‰æ‹©
+;; å¾ªçŽ¯
+;; å‘½åç©ºé—´
+;; æ•°æ®ç±»åž‹
+;; å­—ç¬¦ä¸²
+;; å‘é‡
+;; åˆ—è¡¨
+;; å…³è”åˆ—è¡¨
+;; å“ˆå¸Œè¡¨
+;; æ—¥æœŸä¸Žæ—¶é—´
+;; æ–‡ä»¶æ“ä½œ
+;; æ•°æ®åº“
+;; ç½‘ç»œ
+
+(coerce vec 'list) ; å‘é‡ï¼ˆæ•°ç»„ï¼‰è½¬åˆ—è¡¨
+
+(coerce lst 'vector) ; åˆ—è¡¨è½¬å‘é‡ï¼ˆæ•°ç»„ï¼‰
+
+(flexi-streams:string-to-octets s) ; å­—ç¬¦ä¸²è½¬å­—èŠ‚æ•°ç»„

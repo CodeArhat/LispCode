@@ -81,7 +81,7 @@
       (+ (fibonacci-v0 (- n 2))
          (fibonacci-v0 (- n 1)))))
 
-(defun fibonacci-tab (n &optional (ht (make-hash-table :test #'=)))
+(defun fibonacci-tab (n &optional (ht (make-hash-table )))
   (let ((x (gethash n ht)))
     (when (null x)
       (setf x (if (< n 2)
@@ -96,7 +96,7 @@
         (cmps 0)
         (swaps 0))
     (dotimes (i (1- n))
-      (if (do ((sorted t) ;; 加速效果有限，甚至更慢
+      (if (do ((sorted t) ;; 鍔犻�熸晥鏋滄湁闄愶紝鐢氳嚦鏇存參
                (e (- n i))
                (j 0 (+ j 1))
                (k 1 (+ k 1)))
@@ -111,3 +111,19 @@
             )
           (return (values cmps swaps))))
     (values cmps swaps)))
+
+(defun sort-stable-demo ()
+  (let ((a (map 'vector #'cons
+                (random-array 10 :bound 5)
+                (random-array 10 :bound 100))))
+    (flet ((cmp (x y) (< (car x) (car y))))
+      (print (sort a #'cmp))
+      (print (sort a #'cmp))
+      (print (stable-sort a #'cmp))
+      (print (stable-sort a #'cmp))))
+  nil)
+
+(defstruct vec3f
+  (x 0.0 :type float)
+  (y 0.0 :type float)
+  (z 0.0 :type float))
