@@ -3,6 +3,15 @@
 (defun square (x)
   (* x x))
 
+(defun ackermann (m n)
+  (declare (optimize (speed 3) (safety 0) (debug 0)))
+  (declare (fixnum m n))
+  (if (<= m 0)
+      (+ n 1)
+      (if (<= n 0)
+          (ackermann (- m 1) 1)
+          (ackermann (- m 1) (ackermann m (- n 1))))))
+
 ;; bound should be integer, float, long-float
 (defun random-array (n &key (bound 1.0) (rng *random-state*))
   (let ((a (make-array n)))
