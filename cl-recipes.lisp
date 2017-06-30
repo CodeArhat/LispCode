@@ -8,6 +8,7 @@
 (ql:quickload :postmodern)
 (ql:quickload :trivial-utf-8)
 (ql:quickload :usocket)
+(ql:quickload :uuid)
 
 (defun compute-style-demo ()
   (print (loop for i from 1 to 100 sum i))
@@ -80,3 +81,6 @@
 
 (defun opengl-demo ()
   )
+
+(defun uuid-demo ()
+  (format t "~s ~s~%" (uuid:make-v1-uuid) (uuid:make-v4-uuid)))
