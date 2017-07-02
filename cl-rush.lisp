@@ -87,6 +87,11 @@ nil nIL Nil NIL
 ;; 数据库
 ;; 网络
 
+(defun type-convert-demo ()
+  (list (float 1/3)
+        (float 2/3 0d0)
+        (format nil "~s" 123)))
+
 (coerce vec 'list) ; 向量（数组）转列表
 
 (coerce lst 'vector) ; 列表转向量（数组）
