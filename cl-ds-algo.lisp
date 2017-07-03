@@ -13,19 +13,26 @@
           (ackermann (- m 1) (ackermann m (- n 1))))))
 
 ;; bound should be integer, float, long-float
-(defun random-array (n &key (bound 1.0) (rng *random-state*))
+(defun gen-random-vector (n &key (bound 1.0) (rng *random-state*))
   (let ((a (make-array n)))
     (dotimes (i n)
       (setf (aref a i) (random bound rng)))
     a))
 
-(defun shuffle-array (n)
+(defun shuffle-vector (a &optional (b 0) (e (length a)))
+  (let ((d (- e b)))
+    (loop for i from b to e do
+      (rotatef (aref a i) (aref a (+ b(random d)))))
+    a))
+
+(defun gen-sequence (n)
   (let ((a (make-array n)))
     (dotimes (i n)
       (setf (aref a i) i))
-    (dotimes (i n)
-      (rotatef (aref a i) (aref a (random n))))
     a))
+
+(defun gen-shuffle-vector (n)
+  (shuffle-vector (gen-sequence n)))
 
 ;; same as logcount
 (defun count-ones-v1 (n)
@@ -82,7 +89,7 @@
         (t 0)))
 
 (defun test-sum-array (&optional (n 10))
-  (let* ((a (random-array n :bound 100))
+  (let* ((a (gen-random-vector n :bound 100))
          (v (list (sum-array-v0 a)
                   (sum-array-v1 a)
                   (sum-array-v2 a)
@@ -131,8 +138,8 @@
 
 (defun sort-stable-demo ()
   (let ((a (map 'vector #'cons
-                (random-array 10 :bound 5)
-                (random-array 10 :bound 100))))
+                (gen-random-vector 10 :bound 5)
+                (gen-random-vector 10 :bound 100))))
     (flet ((cmp (x y) (< (car x) (car y))))
       (print (sort a #'cmp))
       (print (sort a #'cmp))
