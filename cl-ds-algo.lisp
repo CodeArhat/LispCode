@@ -19,6 +19,14 @@
       (setf (aref a i) (random bound rng)))
     a))
 
+(defun shuffle-array (n)
+  (let ((a (make-array n)))
+    (dotimes (i n)
+      (setf (aref a i) i))
+    (dotimes (i n)
+      (rotatef (aref a i) (aref a (random n))))
+    a))
+
 ;; same as logcount
 (defun count-ones-v1 (n)
   "Count bit ones in integer N, iterative version."
