@@ -222,6 +222,32 @@
 ;; 9.7 Loop Facility
 (loop (print (eval (read))))
 
+(loop for i from 1 to 3 do (print i))
+(loop as i from 1 to 3 do (print i))
+(loop for i downfrom 3 to 1 do (print i))
+(loop for i from 3 downto 1 do (print i))
+(loop for i fixnum from 1 to 3 and j from 2 to 5 do (format t "~s ~s~%" i j))
+
+(loop for e in '(1 2 3) do (print e)) ;; ~mapcar
+(loop for e on '(1 2 3) do (print e)) ;; ~maplist
+
+(loop for i from 2 to 10 by 3 do (print i)) ;; by 
+
+(loop for i = 2 then 5 ;; var = x then y
+      do (if (= i 2)
+             (print i)
+             (progn (print i)
+                    (return i))))
+
+(loop for e across (gen-random-vector 10) do (print e)) ;; array
+
+(let ((ht (make-hash-table)))
+  (dotimes (i 5) (setf (gethash i ht) (* i i)))
+  (loop for k being the hash-key of ht using (hash-value v) do
+    (format t "~&~s => ~s~%" k v))
+  (loop for k being each hash-key in ht using (hash-value v) do ;; the/each, of/in
+    (format t "~s => ~s~%" k v)))
+
 ;; 12 Types and Classes
 
 (demo "type-functions"
