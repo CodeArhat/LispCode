@@ -32,7 +32,7 @@
 (defun json-demo ()
   )
 
-(defun xml-demo () 
+(defun xml-demo ()
   )
 
 (defun regexp-demo ()

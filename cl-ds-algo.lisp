@@ -187,3 +187,9 @@
       (setf vt (vec3f-cross va vb))
       (setf va vb vb vt))
     va))
+
+(defun q1 ()
+  (do ((i 0 (1+ i)))
+      ((and (integerp (sqrt (+ i 100)))
+            (integerp (sqrt (+ i 268))))
+       i)))
