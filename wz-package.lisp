@@ -5,6 +5,11 @@
   (:use :common-lisp)
   (:export
 
+   ;; general
+   :last-elt
+   :singlep
+
+   ;; math
    :ackermann
    :square
    :cube
@@ -76,4 +81,4 @@
    :make-qrcode
    :readlines
    :plist_to_hashtable
-   ))
+   :accum-squares))

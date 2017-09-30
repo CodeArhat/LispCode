@@ -1,3 +1,54 @@
+#|
+Wang Zheng's Common Lisp Utilities.
+
+# Parameter Naming Rules:
+
+a, b, c, d: atom
+e: element
+f: function
+g: general-object
+h: hash-table
+i, j, k: integer
+l, m, n: natural (>= 0)
+o, p, q: object (atom or list)
+r: rational
+s: string
+u, v, w: vector
+x, y, z: number (int or float)
+
+bs: bytes
+cs: database-cursor
+db: database-connection
+fn: function
+ht: hash-table
+rc: record
+rs: record-set
+tx: database-transaction
+
+arr: array
+err: error-condition
+ist, ost: input/output stream
+ifs, ofs: input/output file stream
+iss, oss: input/output string stream
+jsn: json
+lst: list
+obj: object (atom or list)
+pth: path
+seq: sequence (list, array, string)
+str: string
+tmp: temporary
+tms: timestamp
+utm: unix-time
+val: value
+vec: vector
+ymd: year-month-day (YYYYMMDD)
+
+s...: source
+t...: target
+
+# Encoding: utf8 only
+|#
+
 (in-package :com.zlisp.wz)
 
 (ql:quickload :cl-base64)
@@ -31,9 +82,9 @@
 (ql:quickload :sxql)
 (ql:quickload :trivial-utf-8)
 (ql:quickload :uiop)
-(ql:quickload :woo)
 (ql:quickload :yason)
 
+;; math
 (defun square (x)
   (* x x))
 
@@ -42,6 +93,85 @@
 
 (defun cbrt (x)
   (expt x 1/3))
+
+(defun fibonacci (n)
+  (do ((i 1 (+ i 1))
+       (a 1 b)
+       (b 1 (+ a b)))
+      ((>= i n) b)))
+
+(defun fibonacci-tab (n &optional (ht (make-hash-table )))
+  (let ((x (gethash n ht)))
+    (when (null x)
+      (setf x (if (< n 2)
+                  n
+                  (+ (fibonacci-tab (- n 2) ht)
+                     (fibonacci-tab (- n 1) ht))))
+      (setf (gethash n ht) x))
+    x))
+
+(defun fibonacci-v0 (n)
+  (if (< n 2)
+      n
+      (+ (fibonacci-v0 (- n 2))
+         (fibonacci-v0 (- n 1)))))
+
+(defun factorial-v1 (n)
+  (if (> n 1)
+      (* (factorial-v1 (- n 1)) n)
+      1))
+
+(defun factorial-v2 (n &optional (p 1))
+  (if (> n 1)
+      (factorial-v2 (- n 1) (* p n))
+      p))
+
+(defun factorial-v3 (n)
+  (let ((p 1))
+    (loop for i from 1 to n do
+          (setf p (* p i)))
+    p))
+
+(defun ackermann (m n)
+  (declare (optimize (speed 3) (space 0) (debug 0) (safety 0) (compilation-speed 0)))
+  (declare (fixnum m n))
+  (the fixnum (if (<= m 0)
+                  (+ n 1)
+                  (if (<= n 0)
+                      (ackermann (- m 1) 1)
+                      (ackermann (- m 1) (ackermann m (- n 1)))))))
+
+(defun accum-int (m n)
+  (/ (* (+ m n)
+        (- n m -1))
+     2))
+
+(defun accum-natural (n)
+  (/ (* n (1+ n)) 2))
+
+(defun accum-square (n)
+  (/ (* n (1+ n) (1+ (* n 2))) 6))
+
+(defun collatz-seq (n step peak)
+  (declare (optimize (speed 3) (debug 0) (safety 0)))
+  (if (<= n 1)
+      (list step (max n peak))
+      (collatz-seq (if (evenp n)
+                       (/ n 2)
+                       (+ (* n 3) 1))
+                   (+ step 1)
+                   (max peak n))))
+
+(defun collatz (n)
+  (declare (optimize (speed 3) (debug 0) (safety 0)))
+  (let ((max-step 0)
+        (peak 0)
+        (pair nil))
+    (dotimes (i (+ n 1))
+      (setf pair (collatz-seq i 0 0))
+      (setf max-step (max (car pair) max-step))
+      (setf peak (max (second pair) peak)))
+    (list max-step peak)))
 
 ;; conditions
 (define-condition zerror (error)
@@ -57,7 +187,10 @@
   (if a a b))
 
 (defun nvls (a b)
-  (if (or (null a) (string= a "")) b a))
+  (if (or (null a)
+          (string= a ""))
+      b
+      a))
 
 (defun empty-to-null (str)
   (if (string= str "") :null str))
@@ -199,9 +332,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; hash functions
 (defun md5s (s)
-  (ironclad:byte-array-to-hex-string
-   ;;(md5:md5sum-string s)
-   (md5:md5sum-sequence (wz:utf8encode s))))
+  (ironclad:byte-array-to-hex-string (md5:md5sum-sequence (wz:utf8encode s))))
 
 (defun md5su (s)
   (toupper (md5s s)))
@@ -226,16 +357,20 @@
 
 (defun sha3s (s)
   (let* ((bs (flexi-streams:string-to-octets s :external-format :utf-8))
-         (dg (sha3:SHA3-DIGEST-VECTOR bs))
-         (ss (ironclad:byte-array-to-hex-string dg)))
-    ss))
+         (dg (sha3:sha3-digest-vector bs)))
+    (ironclad:byte-array-to-hex-string dg)))
+
+(defun sha3s-v1 (s)
+  (format nil "~(~{~2,'0x~}~)" (coerce (sha3:sha3-digest-vector (flexi-streams:string-to-octets s)) 'list)))
 
 (defun sha3su (s)
   (toupper (sha3s s)))
 
-(defun sha3str (s)
-  (format t "~(~{~2,'0x~}~)" (coerce (sha3:sha3-digest-vector (flexi-streams:string-to-octets s)) 'list)))
+(defun password-hash (salt pswd)
+  (sha3s (strcat salt pswd)))
 
+(defun password-check (salt pswd hash)
+  (string= (password-hash salt pswd) hash))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; random functions
@@ -300,45 +435,9 @@
     (dotimes (n 10)
       (format ofs "~5,'0d~%" n))))
 
-(defun ackermann (m n)
-  (declare (optimize (speed 3) (space 0) (debug 0) (safety 0) (compilation-speed 0)))
-  (declare (fixnum m n))
-  (the fixnum (if (<= m 0)
-                  (+ n 1)
-                  (if (<= n 0)
-                      (ackermann (- m 1) 1)
-                      (ackermann (- m 1)
-                                 (ackermann m (- n 1)))))))
-
-(defun foo (n)
-  (if (= n 1)
-      (return-from foo (+ n 10)))
-  (if t
-      (return-from foo (* n n))))
-
-(defun dbtest (db)
-  (print db)
-  (postmodern:query "select 1+2" ))
-
-(declaim (ftype (function (simple-array integer) integer) bubble-sort))
-
-(defun bubble-sort (a n)
-  (declare (optimize (speed 3) (safety 0)))
-  (declare (fixnum n))
-  (dotimes (j (- n 1))
-    (dotimes (i (- n 1 j))
-      (if (< (aref a i) (aref a (1+ i)))
-          (rotatef (aref a i) (aref a (1+ i)))))))
-
 (defun dump-array (a)
   (dotimes (i (length a))
     (format t "[~a]: ~a~%" i (aref a i))))
-
-(defun password-hash (salt pswd)
-  (sha3s (strcat salt pswd)))
-
-(defun password-check (salt pswd hash)
-  (string= (password-hash salt pswd) hash))
 
 (defmacro geth (hashtbl key)
   `(gethash ,key ,hashtbl))
@@ -423,7 +522,7 @@
     cblocks))
 
 (defun aes-decrypt-bytes (key cipherblocks)
-  (let* ((dblock (aes-decrypt key cipherblocks))
+  (let* ((dblock (aes-decrypt-blocks key cipherblocks))
          (dbytes (pkcs7trim dblock)))
     dbytes))
 
@@ -470,12 +569,12 @@
   (dom:node-value (dom:first-child (car (css-selectors:query path dom-root)))))
 
 (defun make-qrcode (text save-to-filename
-                   &key (back-color "ffffff") (fore-color "000000") (error-correction "h")
-                     (size 256) (margin 16) (logo nil))
+                    &key (back-color "ffffff") (fore-color "000000") (error-correction "h")
+                      (size 256) (margin 16) (logo nil))
   (let* ((encoded-text (do-urlencode:urlencode text))
          (encoded-logo (do-urlencode:urlencode logo))
          (url (format nil "http://qr.liantu.com/api.php?text=~a&bg=~a&fg=~a&el=~a&w=~a&m=~a&logo=~a"
-                      text back-color fore-color error-correction size margin encoded-logo))
+                      encoded-text back-color fore-color error-correction size margin encoded-logo))
          (imgdata (drakma:http-request url)))
     (with-open-file (ofs save-to-filename :direction :output :element-type '(unsigned-byte 8) :if-exists :supersede)
       (write-sequence imgdata ofs))
@@ -525,9 +624,6 @@
               (incf (cdr (assoc e d))))
             lst)
     d))
-
-(defun count-elements-v2 (lst)
-  )
 
 (defun posadd-rec (lst &optional (i 0))
   (if lst
@@ -597,49 +693,10 @@
       (tail-recursive-demo (- n 1) (+ sum 1))
       sum))
 
-(defun factorial0 (n)
-  (if (> n 1)
-      (* (factorial0 (- n 1)) n)
-      1))
-
-(defun factorial1 (n &optional (p 1))
-  (if (> n 1)
-      (factorial1 (- n 1) (* p n))
-      p))
-
-(defun factorial2 (n)
-  (let ((p 1))
-    (loop for i from 1 to n do
-          (setf p (* p i)))
-    p))
-
-(defun accum (a b)
-  (loop for i from a to b sum i))
-
-(defun collatz-seq (n step peak)
-  (declare (optimize (speed 3) (debug 0) (safety 0)))
-  (if (<= n 1)
-      (list step (max n peak))
-      (collatz-seq (if (evenp n)
-                       (/ n 2)
-                       (+ (* n 3) 1))
-                   (+ step 1)
-                   (max peak n))))
-
-(defun collatz (n)
-  (declare (optimize (speed 3) (debug 0) (safety 0)))
-  (let ((max-step 0)
-        (peak 0)
-        (pair nil))
-    (dotimes (i (+ n 1))
-      (setf pair (collatz-seq i 0 0))
-      (setf max-step (max (car pair) max-step))
-      (setf peak (max (second pair) peak)))
-    (list max-step peak)))
 
 (defun zmod (n m)
   (zerop (mod n m)))
-    
+
 (defun is-leap-year (y)
   (or (zmod y 400)
       (and (> (mod y 100) 0)
@@ -669,14 +726,6 @@
 
 (defun collatz-walk (x)
   (format t "~{~d~%~}" (collatz-list x)))
-
-(defun my-len (s &optional (n 0))
-  (if (null s)
-      n
-      (my-len (cdr s) (+ n 1))))
-
-(defun sum-factor (n)
-  n)
 
 (defun trunc-demo ()
   (let ((flst (list #'eval #'floor #'ceiling #'round #'truncate))
@@ -810,7 +859,7 @@
       (let ((ne (- end 1)))
         (range begin ne (cons ne lst)))
       lst))
-          
+
 (defun coin-change (cent &optional (value 50) (coins nil))
   (cond ((= cent 0) (format t "~a~%" coins))
         ((< cent 0) nil)
@@ -848,51 +897,12 @@
            (setf sum (+ sum (item i))))
       (/ 9801 (* sum 2 (sqrt 2d0))))))
 
-(defun my-funcall (fn &rest args)
-  (apply fn args))
-
-(defun printall (&rest args)
-  (dolist (e args)
-    (format t "~a~%" e)))
-
-(defmacro myinc (v &optional (n 1))
-  (list ))
+(defun prins (&rest args)
+  (format t "~&~{~a~^ ~}~%" args))
 
 (defun mkrng (n)
   (lambda ()
     (random n)))
-
-(defun ackermann (m n)
-  (declare (optimize (speed 3) (debug 0) (safety 0)))
-  (declare (fixnum m n))
-  (cond ((<= m 0) (+ n 1))
-        ((= n 0) (ackermann (- m 1) 1))
-        (t (ackermann (- m 1) (ackermann m (- n 1))))))
-
-(defun foo (m)
-  (let ((s "a"))
-    (dotimes (n m)
-      (setf s (concatenate 'string s s)))
-    s))
-      
-(defun ff (x)
-  (lambda (y) (* x y)))
-
-(defparameter *my-fun* 1)
-
-(defun my-func (v0)
-  (setf (symbol-function '*my-fun*)
-    (lambda (v1)
-      (+ v0 v1)))
-  '*my-fun*)
-
-(defun tw-policy (tw)
-  (dolist (e tw-jp-mg)
-    (if (or (malep e) (oldp e))
-        (terminate e)
-        ((lambda (p)
-          )
-         (cons (pop soldiers) e)))))
 
 (defun c2 (lst)
   (let ((a (car lst))
@@ -926,15 +936,6 @@
         (b (expt y n) (expt y n)))
        ((< a b) n)
     (format t "~s^~s=~s ~s^~s=~s~%" n x a y n b)))
-
-(defun ackermann (m n)
-  (declare (optimize (speed 3) (safety 0) (debug 0)))
-  (declare (fixnum m n))
-  (if (<= m 0)
-      (+ n 1)
-      (if (<= n 0)
-          (ackermann (- m 1) 1)
-          (ackermann (- m 1) (ackermann m (- n 1))))))
 
 ;; bound should be integer, float, long-float
 (defun gen-random-vector (n &key (bound 1.0) (rng *random-state*))
@@ -1023,21 +1024,6 @@
       (return-from test-sum-array nil))
     t))
 
-(defun fibonacci-v0 (n)
-  (if (< n 2)
-      n
-      (+ (fibonacci-v0 (- n 2))
-         (fibonacci-v0 (- n 1)))))
-
-(defun fibonacci-tab (n &optional (ht (make-hash-table )))
-  (let ((x (gethash n ht)))
-    (when (null x)
-      (setf x (if (< n 2)
-                  n
-                  (+ (fibonacci-tab (- n 2) ht)
-                     (fibonacci-tab (- n 1) ht))))
-      (setf (gethash n ht) x))
-    x))
 
 (defun bubble-sort (a &optional (cmp #'<=))
   (let ((n (length a))
@@ -1059,6 +1045,12 @@
             )
           (return (values cmps swaps))))
     (values cmps swaps)))
+
+(defun bubble-sort-v2 (a n)
+  (dotimes (j (- n 1))
+    (dotimes (i (- n 1 j))
+      (if (< (aref a i) (aref a (1+ i)))
+          (rotatef (aref a i) (aref a (1+ i)))))))
 
 (defun sort-stable-demo ()
   (let ((a (map 'vector #'cons
@@ -1139,13 +1131,14 @@
 (defun next-prime (n)
   (loop for i from n when (primep i) return i))
 
-(loop for i in '(1 2 3 4 5)
-   minimizing i into min
-   maximizing i into max
-   summing i into total
-   counting (evenp i) into evens
-   counting (oddp i) into odds
-   finally (return (list min max total evens odds)))
+(defun loop-demo ()
+  (loop for i in '(1 2 3 4 5)
+        minimizing i into min
+        maximizing i into max
+        summing i into total
+        counting (evenp i) into evens
+        counting (oddp i) into odds
+        finally (return (list min max total evens odds))))
 
 (defmacro with-gensym ((&rest names) &body body)
   `(let ,(loop for nm in names collect `(,nm (gensym)))
@@ -1158,7 +1151,6 @@
          ((> ,var ,evnm))
        ,@body)))
 
-;;; C9
 (defvar *test-name* nil)
 
 (defun report-result (result form)
@@ -1194,7 +1186,6 @@
     (= (*) 1)
     (= (* 2 3) 6)))
 
-;;; todo
 (defun puts (&rest args)
   (dolist (e args)
     (format t "~a " e))
@@ -1220,34 +1211,6 @@
                        :type nil
                        :defaults pname)
         pname)))
-
-(defgeneric draw (shape)
-  (:documentation "generic-method-test")
-  ;(:method-combination or)
-  )
-
-(defmethod draw ((shape integer))
-  (format t "integer: ~a~%" shape)
-  (call-next-method))
-
-(defmethod draw :before ((shape float))
-  (format t "float-before: ~a~%" shape))
-
-(defmethod draw ((shape float))
-  (format t "float: ~a~%" shape))
-
-(defmethod draw :after ((shape float))
-  (format t "float-after: ~a~%" shape))
-
-(defmethod draw :around ((shape float))
-  (format t "float-around: ~a~%" shape)
-  (call-next-method))
-
-(defmethod draw ((shape number))
-  (format t "number: ~a~%" shape))
-
-(defmethod draw ((shape t))
-  (format t "t: ~a~%" shape))
 
 (defun gen-big-lisp (filename &key (n 655360))
   (with-open-file (s filename :direction :output :if-exists :supersede)
@@ -1301,25 +1264,6 @@
 (defun load-time-test ()
   (load-time-value (get-sqrt2)))
 
-(defun ack (m n)
-  (declare (optimize (speed 3) (space 0) (safety 0) (debug 0) (compilation-speed 0)))
-  (declare (fixnum m n))
-  (the fixnum
-       (if (<= m 0)
-           (+ n 1)
-           (if (<= n 0)
-               (ack (- m 1) 1)
-               (ack (- m 1) (ack m (- n 1)))))))
-
-(defgeneric gack (m n))
-
-(defmethod gack ((m fixnum) (n fixnum))
-  (if (<= m 0)
-      (+ n 1)
-      (if (<= n 0)
-          (gack (- m 1) 1)
-               (gack (- m 1) (gack m (- n 1))))))
-
 ;;;; ANSI Common Lisp
 (defun unique (lst)
   (let ((c nil))
@@ -1341,10 +1285,7 @@
             lst)
     d))
 
-(defun count-elements-v2 (lst)
-  )
-
-
+;; from "On Lisp"
 (defun last1 (lst)
   (car (last lst)))
 
@@ -1352,18 +1293,16 @@
   (and (consp lst)
        (null (cdr lst))))
 
-(defun append1 (lst obj)
-  (append lst (list obj)))
+(defun append1 (lst x)
+  (append lst (list x)))
 
-(defun nappend1 (lst obj)
-  (nconc lst (list obj)))
+(defun nappend1 (lst x)
+  (nconc lst (list x)))
 
-(defun mklist (obj)
-  (if (listp obj)
-      obj
-      (list obj)))
+(defun mklist (x)
+  (if (listp x) x (list x)))
 
-(defun longer (a b)
+(defun longerp (a b)
   (labels ((cmp (x y)
              (and (consp x)
                   (or (null y)
@@ -1373,12 +1312,14 @@
         (> (length a) (length b)))))
 
 (defun filter (fn lst)
-  (let ((r nil))
+  (let (r)
     (dolist (e lst)
       (let ((v (funcall fn e)))
-        (if v
-            (push v r))))
+        (if v (push v r))))
     (nreverse r)))
+
+(defun filter-v1 (fn lst)
+  (loop for e in lst when (funcall fn e) collect it))
 
 (defun group (lst n)
   (assert (plusp n)))
@@ -1873,58 +1814,12 @@
 (setf (symbol-function 'nappend) #'nconc)
 (setf (symbol-function 'nremove) #'delete)
 
-(defun it-assoc (item alist)
-  (dolist (e alist)
-    (if (equal (car e) item)
-        (return e))))
-
-(defun it-length (lst)
-  (let ((n 0))
-    (dolist (e lst)
-      (incf n))
-    n))
-
-(defun it-nth (n lst)
-  (dolist (e lst)
-    (if (zerop n)
-        (return e))
-    (decf n)))
-
-(defun it-nth-v2 (n lst)
-  (dotimes (i n (car lst))
-    (pop lst)))
-
-(defun it-union (a b)
-  (let ((u a))
-    (dolist (e b)
-      (if (not (member e u))
-          (push e u)))
-    u))
-
-(defun it-reverse (lst)
-  (let ((a nil))
-    (dolist (e lst)
-      (push e a))
-    a))
-
-(defun do-check-all-odd (lst)
-  (do ((a lst (cdr a)))
-      ((null a) t)
-    (if (evenp (car a))
-        (return nil))))
-
 (defun ffo-with-do (x)
   (do ((z x (rest z))
        (e (first x) (first z))
        (dummy (format t "z: ~a, e: ~a~%" x (first x)) (format t "z: ~a, e: ~a~%" (rest z) (first z))))
       ((null z) nil)
     (if (oddp e) (return e))))
-
-(defun do-fib (n)
-  (do ((i 1 (+ i 1))
-       (a 1 b)
-       (b 1 (+ a b)))
-      ((>= i n) b)))
 
 ; 11.22
 (defun complement-base (base)
@@ -1991,27 +1886,17 @@
       (count-bases-strand-v2 bases)
       (count-bases-helix bases)))
 
-(defun footest ()
-  (do ((cnt '(1)))
-      (nil)
-    (print cnt)
-    (incf (car cnt))
-    (return cnt)))
-
-(defun lsttest ()
-  (list 1 2 3))
-
-(defun dna-prefixp (a b)
+(defun listprefixp (a b)
   (do ((pa a (cdr pa))
        (pb b (cdr pb)))
       ((null pa) t)
     (unless (eq (car pa) (car pb))
         (return nil))))
 
-(defun dna-appearsp (a b)
+(defun listappearsp (a b)
   (do ((pb b (cdr pb)))
       ((null pb) (null a))
-    (if (dna-prefixp a pb)
+    (if (listprefixp a pb)
         (return t))))
 
 (defun dna-coverp (a b)
@@ -2027,7 +1912,7 @@
   (do* ((n (length a))
         (pb b (nthcdr n pb)))
        ((null pb) t)
-    (unless (dna-prefixp a pb)
+    (unless (listprefixp a pb)
       (return nil))))
 
 (defun dna-prefix (n strand)
@@ -2053,86 +1938,6 @@
   (do* ((i 1 (+ i 1))
         (p (dna-prefix i strand) (dna-prefix i strand)))
        ((dna-coverp p strand) p)))
-
-(defun dna-draw (a)
-  (let ((b (complement-strand a)))
-    (dolist (e b) (format t "-----"))(format t "~%")
-    (dolist (e b) (format t "  !  "))(format t "~%")
-    (dolist (e a) (format t "  ~a  " e))(format t "~%")
-    (dolist (e b) (format t "  .  "))(format t "~%")
-    (dolist (e b) (format t "  .  "))(format t "~%")
-    (dolist (e b) (format t "  ~a  " e))(format t "~%")
-    (dolist (e b) (format t "  !  "))(format t "~%")
-    (dolist (e b) (format t "-----"))(format t "~%")))
-
-(defun my-prog1 (x &rest ignore) x)
-(defun my-prog2 (x y &rest ignore) y)
-(defun my-progn (&rest x) (car (last x)))
-
-
-;; 12.4
-(defstruct adnode
-  name question ycase ncase)
-
-(defvar *adnodes* nil)
-
-(defun ad-init ()
-  (setf *adnodes* nil)
-  'initialized)
-
-(defun ad-add-node (name question ycase ncase)
-  (push (make-adnode :name name :question question :ycase ycase :ncase ncase) *adnodes*)
-  name)
-
-(defun ad-find-node (name)
-  (dolist (node *adnodes*)
-    (if (equal (adnode-name node) name)
-        (return node))))
-
-(defun ad-find-node-v2 (name)
-  (find-if (lambda (node) (equal (adnode-name node) name))
-           *adnodes*))
-
-(defun ad-process-node (name)
-  (let ((node (ad-find-node name)))
-    (when (null node)
-      (format t "~&node ~a: undefined" node)
-      (return-from ad-process-node nil))
-    (format t "~a" (adnode-question node))
-    (if (y-or-n-p) (adnode-ycase node) (adnode-ncase node))))
-
-(defun ad-run ()
-  (do ((current-node 'start (ad-process-node current-node)))
-      ((null current-node) nil)
-    (format t "current-node: ~a~%" current-node)
-    (when (stringp current-node)
-      (format t "~&~a" current-node)
-      (return nil))))
-
-(ad-init)
-(ad-add-node 'start "turn-over?" 'turn-over 'wont-turn-over)
-(ad-add-node 'turn-over "run-briefly?" 'engine-run-briefly 'engine-wont-run)
-
-(defun print-starship (obj stream depth)
-  (if (< depth 5)
-      (format stream "#<STARSHIP ~a with ~a>" (starship-name obj) (starship-captain obj))))
-
-(defstruct (starship (:print-function print-starship))
-  name speed captain)
-
-(defun print-captain (obj stream depth)
-  (if (< depth 5)
-      (format stream "#<Captain ~a@~a>" (captain-name obj) (captain-ship obj))))
-
-(defstruct (captain (:print-function print-captain))
-  name ship)
-
-(defstruct animal
-  name)
-
-(defstruct (tiger (:include animal)))
-(defstruct (lion (:include animal)))
-;(defstruct (liger (:include tiger) (:include lion)))
 
 (defun array-plist-hashtable-compare (&key (cnt 100))
   (let* ((a (make-array cnt :element-type 'float))
@@ -2195,30 +2000,6 @@
     (dotimes (i (length *hist-array*))
       (randtest-print-histline i scale))))
 
-;; 13.9
-(defparameter *crypto-text* '("ej ze kljjls jf slapzi ezvlij pib kl jufwxuj p hffv jupi jf"
-                              "enlpo pib slafml pvv bfwkj"))
-
-(defparameter *encipher-tbl* (make-hash-table))
-(defparameter *decipher-tbl* (make-hash-table))
-
-(defun make-subst (src-char dst-char)
-  (setf (gethash src-char *encipher-tbl*) dst-char)
-  (setf (gethash dst-char *decipher-tbl*) src-char))
-
-(defun undo-subst (char)
-  (setf (gethash char *encipher-tbl*) nil)
-  (setf (gethash char *decipher-tbl*) nil))
-
-(defun cipher-string (s)
-  (map 'string (lambda (c)
-                 (let ((x (gethash c *encipher-tbl*)))
-                   (if x x #\space)))
-       s))
-
-(defmacro my-incf (x &optional (amount 1))
-  (list 'setf x (list '+ x amount)))
-
 ;; 14.5
 (defmacro set-mutual (a b)
   `(progn
@@ -2237,3 +2018,38 @@
         (r nil ))
        ((null b) (cons 'progn (reverse r)))
     (setf r (cons `(setf ,(car a) ',(car b)) r))))
+
+
+(defun sort-unique-symbols (lists)
+  (sort (remove-duplicates (apply #'append lists))
+        #'string<))
+
+(defun gen-combinations (lst n)
+  (if (and lst (> n 1))
+      (append (mapcar (lambda (e) (cons (car lst) e))
+                      (gen-combinations (cdr lst) (1- n)))
+              (gen-combinations (cdr lst) n))
+      (if (= n 1)
+          (mapcar #'list lst))))
+
+(defun edge-in (edge graph)
+  (let ((pa (first edge))
+        (pb (second edge)))
+    (some (lambda (g)
+            (and (eq pa (car g))
+                 (member pb (cdr g))))
+          graph)))
+
+(defun triple-in (triple graph)
+  (every (lambda (edge) (edge-in edge graph))
+         (gen-combinations triple 2)))
+
+(defun on-line (triple lines)
+  (some (lambda (line) (subsetp triple line))
+        lines))
+
+(defun list-triangles (graph lines)
+  (remove-if-not (lambda (triple)
+                   (and (triple-in triple graph)
+                        (not (on-line triple lines))))
+                 (gen-combinations (sort-unique-symbols graph) 3)))
