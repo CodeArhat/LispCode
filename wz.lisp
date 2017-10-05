@@ -73,7 +73,6 @@ t...: target
 (ql:quickload :md5)
 (ql:quickload :parse-float)
 (ql:quickload :parse-number)
-(ql:quickload :plain-odbc)
 (ql:quickload :postmodern)
 (ql:quickload :random-state)
 (ql:quickload :regex)
@@ -234,6 +233,14 @@ t...: target
 (defun utf8read (istream)
   (setf (flexi-streams:flexi-stream-external-format istream) :utf-8)
   (trivial-utf-8:read-utf-8-string istream :stop-at-eof t))
+
+(defparameter *json-example* "{
+  \"age\": 40,
+  \"planck\": 6.626e-34,
+  \"name\": \"Tom\",
+  \"obj\": {\"empty obj\": {}},
+  \"literal\": [true, false, null, []],
+}")
 
 (setf yason:*parse-json-null-as-keyword* t)
 (setf yason:*parse-json-booleans-as-symbols* t)
@@ -617,14 +624,51 @@ t...: target
         (ub (ordered-unique b)))
     (append ua (remove-if (lambda (e) (member e ua)) ub))))
 
-(defun occurrences (lst)
+(defun run-length-encode (lst)
+  (labels ((ec (e cnt)
+             (if (> cnt 1)
+                 (cons e cnt)
+                 e))
+           (rle (rst e cnt)
+             (if rst
+                 (let ((a (car rst)))
+                   (if (eq a e)
+                       (rle (cdr rst) e (1+ cnt))
+                       (cons (ec e cnt)
+                             (rle (cdr rst) a 1))))
+                 (cons (ec e cnt) nil))))
+    (if lst
+        (rle (cdr lst) (car lst) 1))))
+
+(defun run-length-decode (lst)
+  (if lst
+      (let ((a (car lst)))
+        (if (consp a)
+            (append (loop for i from 1 to (cdr a) collect (car a))
+                    (run-length-decode (cdr lst)))
+            (cons a (run-length-decode (cdr lst)))))))
+
+(defun nthmost (lst n)
+  (nth n (sort (copy-list lst) #'<)))
+
+;; acl-3-3
+(defun occurrences-v1 (lst)
   (let ((d (mapcar (lambda (e) (cons e 0))
                    (unique lst))))
     (mapcar (lambda (e)
               (incf (cdr (assoc e d))))
             lst)
-    d))
+    (sort d #'> :key #'cdr)))
 
+(defun occurrences-v2 (lst)
+  (let ((m nil))
+    (dolist (e lst)
+      (if (null (assoc e m))
+          (push (cons e 1) m)
+          (incf (cdr (assoc e m)))))
+    (sort m #'> :key #'cdr)))
+
+;; acl-3-5
 (defun posadd-rec (lst &optional (i 0))
   (if lst
       (cons (+ (car lst) i)
@@ -635,6 +679,22 @@ t...: target
        (a lst (cdr a)))
       ((null a) lst)
     (incf (car a) i)))
+
+;; acl-3-8
+(defun showdots (lst)
+  (if (null lst)
+      (format t "nil")
+      (if (listp lst)
+          (progn (format t "(")
+                 (showdots (car lst))
+                 (format t " . ")
+                 (showdots (cdr lst))
+                 (format t ")"))
+          (format t "~a" lst))))
+
+;; acl-3-9
+(defun longest-path (graph)
+  (print graph))
 
 (defvar bin-digits "01")
 (defvar oct-digits "01234567")
@@ -793,27 +853,6 @@ t...: target
 
 (defvar *test-tree* '(0 (1 ) (2)))
 
-(defun mymember (x lst &optional (fn #'eql))
-  (if (null lst)
-      nil
-      (if (funcall fn (car lst) x)
-          lst
-          (mymember x (cdr lst) fn))))
-
-(defun mysubseq (lst begin &optional end n)
-  lst
-  begin
-  end
-  n)
-
-(defun occurrences (lst)
-  (let ((m nil))
-    (dolist (e lst)
-      (if (null (assoc e m))
-          (push (cons e 1) m)
-          (incf (cdr (assoc e m)))))
-    (sort m #'> :key #'cdr)))
-
 (defun occur-lt (a b)
   (< (cdr a) (cdr b)))
 
@@ -821,23 +860,6 @@ t...: target
   (or (null lst)
       (and (consp lst)
            (properlistp (cdr lst)))))
-
-(defun showdots (lst)
-  (if (null lst)
-      (format t "nil")
-      (if (listp lst)
-          (progn (format t "(")
-                 (showdots (car lst))
-                 (format t " . ")
-                 (showdots (cdr lst))
-                 (format t ")"))
-          (format t "~a" lst))))
-
-(defun pos+rec (lst &optional (n 0))
-  (if (null lst)
-      nil
-      (cons (+ (car lst) n)
-            (pos+rec (cdr lst) (+ n 1)))))
 
 (defun empty (s)
   (zerop (length s)))
@@ -1321,8 +1343,14 @@ t...: target
 (defun filter-v1 (fn lst)
   (loop for e in lst when (funcall fn e) collect it))
 
-(defun group (lst n)
-  (assert (plusp n)))
+(defun group (lst n &optional (m 0) (g nil))
+  (assert (plusp n))
+  (if lst
+      (if (< m n)
+          (group (cdr lst) n (1+ m) (push (car lst) g))
+          (cons (nreverse g)
+                (group (cdr lst) n 1 (list (car lst)))))
+      (list (nreverse g))))
 
 (defun flatten (x)
   (labels ((rec (x acc)
