@@ -696,6 +696,9 @@ t...: target
 (defun longest-path (graph)
   (print graph))
 
+;; acl-3.15
+(defparameter net315 '((a b c) (b c) (c d)))
+
 (defvar bin-digits "01")
 (defvar oct-digits "01234567")
 (defvar dex-digits "0123456789")
