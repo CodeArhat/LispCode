@@ -51,6 +51,7 @@ t...: target
 
 (in-package :com.zlisp.wz)
 
+(ql:quickload :bordeaux-threads)
 (ql:quickload :cl-base64)
 (ql:quickload :cl-fad)
 (ql:quickload :cl-json)
@@ -70,6 +71,7 @@ t...: target
 (ql:quickload :ironclad)
 (ql:quickload :lack)
 (ql:quickload :local-time)
+(ql:quickload :lparallel)
 (ql:quickload :md5)
 (ql:quickload :parse-float)
 (ql:quickload :parse-number)
@@ -77,6 +79,7 @@ t...: target
 (ql:quickload :postmodern)
 (ql:quickload :random-state)
 (ql:quickload :regex)
+(ql:quickload :series)
 (ql:quickload :secure-random)
 (ql:quickload :sha3)
 (ql:quickload :sxql)
@@ -126,7 +129,7 @@ t...: target
       (factorial-v2 (- n 1) (* p n))
       p))
 
-(defun factorial-v3 (n)
+(defun factorial (n)
   (let ((p 1))
     (loop for i from 1 to n do
           (setf p (* p i)))
@@ -883,7 +886,9 @@ t...: target
   (* (log x) 0.43429448190325176d0))
 
 (defun combinatorial (n k)
-  (/ (factorial2 n) (factorial2 k) (factorial2 (- n k))))
+  (/ (factorial n)
+     (factorial k)
+     (factorial (- n k))))
 
 (defun genlist (max &key (min 0) (step 1))
   (loop for n from min below max by step

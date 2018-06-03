@@ -1,0 +1,49 @@
+#lang racket
+
+(define (double x)
+  (* x 2))
+
+(define (triple x)
+  (* x 3))
+
+(define (square x)
+  (* x x))
+
+(define (cube x)
+  (* x x x))
+
+(define (average a b)
+  (/ (+ a b) 2))
+
+(define (good-enough guest target)
+  (< (abs (- guest target))
+     0.000001))
+
+(define (sqrt-improve guess x)
+  (average guess (/ x guess)))
+
+(define (sqrt-iter guess x)
+  (if (good-enough (square guess) x)
+      guess
+      (sqrt-iter (sqrt-improve guess x) x)))
+
+(define (mysqrt x)
+  (sqrt-iter 1.0 x))
+
+;(mysqrt 4)
+
+;; ex-1.8
+(define (cbrt-improve y x)
+  (/ (+ (/ x (* y y))
+        (* 2 y))
+     3))
+
+(define (cbrt-iter guess x)
+  (if (good-enough (cube guess) x)
+      guess
+      (cbrt-iter (cbrt-improve guess x) x)))
+
+(define (cbrt x)
+  (cbrt-iter 1.0 x))
+
+;(cbrt 8)
