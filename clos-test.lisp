@@ -18,3 +18,40 @@
 
 (defmethod dump ((obj (eql :null)))
   (format t "~a" "null"))
+
+(defclass Msg ()
+  ())
+
+(defclass InsertMsg (Msg)
+  ())
+
+(defclass UpdateMsg (Msg)
+  ())
+
+(defclass Encoder ()
+  ())
+
+(defclass Encoder1 (Encoder)
+  ())
+
+(defclass Encoder2 (Encoder)
+  ())
+
+(defgeneric encode (encoder msg)
+  )
+
+(defmethod encode ((encoeer Encoder1)
+                   (msg InsertMsg))
+  (format t "E1 ~~ InsertMsg~%"))
+
+(defmethod encode ((encoeer Encoder2)
+                   (msg InsertMsg))
+  (format t "E2 ~~ InsertMsg~%"))
+
+(defmethod encode ((encoeer Encoder1)
+                  (msg UpdateMsg))
+  (format t "E1 ~~ UpdateMsg~%"))
+
+(defmethod encode ((encoeer Encoder2)
+                   (msg UpdateMsg))
+  (format t "E2 ~~ UpdateMsg~%"))
